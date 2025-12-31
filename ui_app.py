@@ -133,38 +133,66 @@ st.set_page_config(
     layout="wide"
 )
 
+st.markdown(
+    """
+    <style>
+    .block-container {
+        max-width: 1100px;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 st.title("📊 Daily Stock Screener")
 st.caption("Screening otomatis saham potensial berbasis sistem trading")
+st.markdown("### ⚙️ Pengaturan Screening")
 
-# =====================================================
-# SIDEBAR
-# =====================================================
-st.sidebar.header("Pengaturan")
+col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
 
-risk_ratio = st.sidebar.slider(
-    "Risk Reward Ratio",
-    min_value=1,
-    max_value=4,
-    value=2
-)
+with col1:
+    universe = st.selectbox(
+        "Universe Saham",
+        ["LQ45", "IDX30", "Kompas100", "Konglo"],
+        index=0
+    )
 
-debug_mode = st.sidebar.checkbox(
-    "🔧 Debug Mode (lihat semua saham)",
-    value=False
-)
+with col2:
+    risk_ratio = st.selectbox(
+        "Risk Reward",
+        [1, 1.5, 2, 3, 4],
+        index=2
+    )
 
-run = st.sidebar.button("🚀 Jalankan Screening")
+with col3:
+    debug_mode = st.checkbox(
+        "Debug",
+        value=False
+    )
+
+with col4:
+    run = st.button(
+        "🚀 Jalankan Screening",
+        use_container_width=True
+    )
+
+st.markdown("---")
 
 
 # =====================================================
 # MAIN
 # =====================================================
 if run:
-    with st.spinner("Menjalankan screening harian..."):
+    with st.spinner("Menjalankan screening harian..."):        
         results = run_daily_screener(
-            risk_ratio=risk_ratio,
-            debug=debug_mode
-        )
+        universe=universe,
+        risk_ratio=risk_ratio,
+        debug=debug_mode
+)    
+
 
     st.subheader("📋 Hasil Screening Hari Ini")
 

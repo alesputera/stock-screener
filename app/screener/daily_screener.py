@@ -4,71 +4,14 @@
 
 from app.services.data_fetcher import fetch_daily
 from app.engine.trade_engine import trade_engine
+from app.universe.loader import load_universe
 
 
-# =========================
-# SAHAM YANG DISCREENING
-# =========================
-UNIVERSE = [
-    "BBRI.JK",
-    "BBCA.JK",
-    "BMRI.JK",
-    "BBNI.JK",
-    "BRIS.JK",
-
-    "TLKM.JK",
-    "EXCL.JK",
-    "ISAT.JK",
-    "GOTO.JK",
-    "ARTO.JK",
-
-    "ADRO.JK",
-    "ANTM.JK",
-    "MDKA.JK",
-    "INCO.JK",
-    "TINS.JK",
-    "PTBA.JK",
-    "ITMG.JK",
-    "HRUM.JK",
-    "BRMS.JK",
-    "BUMI.JK",
-
-    "PGAS.JK",
-    "AKRA.JK",
-    "RAJA.JK",
-    "MEDC.JK",
-    "ELSA.JK",
-
-    "ICBP.JK",
-    "INDF.JK",
-    "UNVR.JK",
-    "MYOR.JK",
-    "KLBF.JK",
-
-    "CTRA.JK",
-    "BSDE.JK",
-    "PWON.JK",
-    "SMRA.JK",
-    "ADHI.JK",
-
-    "ASII.JK",
-    "UNTR.JK",
-    "MAPI.JK",
-    "TBIG.JK",
-    "TOWR.JK",
-
-    "SCMA.JK",
-    "CPIN.JK",
-    "JPFA.JK",
-    "SMGR.JK",
-    "INKP.JK"
-]
-
-
-def run_daily_screener(risk_ratio=2, debug=False):
+def run_daily_screener(universe: str, risk_ratio=2, debug=False):
     results = []
+    symbols = load_universe(universe)
 
-    for symbol in UNIVERSE:
+    for symbol in symbols:
         try:
             df = fetch_daily(symbol)
             result = trade_engine(symbol, df, risk_ratio=risk_ratio)
@@ -100,11 +43,12 @@ def run_daily_screener(risk_ratio=2, debug=False):
     return results
 
 
-# =========================
-# JALANKAN LANGSUNG
-# =========================
 if __name__ == "__main__":
-    screened = run_daily_screener()
+    screened = run_daily_screener(
+        universe="LQ45",
+        risk_ratio=2,
+        debug=True
+    )
 
     print("\n📊 HASIL SCREENING HARI INI\n")
 
