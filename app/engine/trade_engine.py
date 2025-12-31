@@ -5,6 +5,36 @@
 
 from app.engine.entry import entry_quality_score
 from app.engine.exit import exit_decision
+from app.services.telegram_notifier import send_telegram_alert
+
+def determine_trade_state(pilar):
+    pa = pilar.get("PRICE_ACTION", {})
+    vol = pilar.get("VOLUME", {})
+    mom = pilar.get("MOMENTUM", {})
+    trend = pilar.get("TREND", {})
+
+    pa_status = pa.get("status")
+    pa_details = pa.get("details", {})
+
+    break_kecil = pa_details.get("break_kecil") is True
+
+    volume_ok = vol.get("status") in ["STRONG", "ACCUMULATION"]
+    momentum_ok = mom.get("status") in ["STRONG", "READY"]
+    trend_ok = trend.get("status") in ["STRONG", "TRENDING"]
+
+    if pa_status == "FAIL":
+        return "NO_TRADE"
+
+    if pa_status in ["TRANSITION", "STRONG"]:
+        if not break_kecil:
+            return "SETUP"
+
+        if break_kecil and (volume_ok or momentum_ok or trend_ok):
+            return "CONFIRMED"
+
+        return "TRIGGERED"
+
+    return "NO_TRADE"
 
 
 def is_entry_confirmed(df, signal_index):
@@ -48,7 +78,7 @@ def trade_engine(symbol, df, *, risk_ratio=2):
         "take_profit_2": None,
         "exit_action": None,
         "exit_reason": None,
-        "status": None,
+        "status": "NO_TRADE",  # default
         "pilar": entry_result["pilar"],
     }
 
@@ -66,10 +96,11 @@ def trade_engine(symbol, df, *, risk_ratio=2):
     confirmed = is_entry_confirmed(df, signal_index)
 
     if not confirmed:
-        trade["status"] = "WAIT_CONFIRMATION"
+        trade["status"] = determine_trade_state(trade["pilar"])
         trade["decision"] = "WAIT"
-        trade["reason"] = "Menunggu candle konfirmasi"
+        trade["reason"] = "Struktur terbentuk, menunggu trigger / konfirmasi"
         return trade
+
 
     # =========================
     # ENTRY PRICE (CONFIRMED)
@@ -77,6 +108,21 @@ def trade_engine(symbol, df, *, risk_ratio=2):
     entry_price = float(df["Close"].iloc[-1])
     trade["entry"] = round(entry_price, 2)
     trade["status"] = "CONFIRMED"
+    
+    # =========================
+    # TELEGRAM ALERT (CONFIRMED)
+    # =========================
+    message = f"""
+    🟢 *CONFIRMED ENTRY*
+    {symbol}
+    
+    Entry : {trade['entry']}
+    SL    : {trade['stop_loss']}
+    RR    : {risk_ratio}
+    """
+    
+    send_telegram_alert(message)
+
 
     # =========================
     # EXIT ENGINE

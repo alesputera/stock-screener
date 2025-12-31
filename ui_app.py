@@ -89,6 +89,79 @@ def render_pipeline(item):
         else:
             st.write(f"✅ {label} — {p_status}")
 
+def render_confirmation_abc(item):
+    """
+    Menampilkan Konfirmasi Entry A / B / C
+    """
+
+    pilar = item.get("pilar", {})
+
+    # 🔥 FIX: key sesuai data asli
+    pa = pilar.get("PRICE_ACTION", {})
+    vol = pilar.get("VOLUME", {})
+    mom = pilar.get("MOMENTUM", {})
+    trend = pilar.get("TREND", {})
+
+    pa_details = pa.get("details", {})
+    vol_status = vol.get("status")
+    mom_status = mom.get("status")
+    trend_status = trend.get("status")
+
+    # =========================
+    # A — STRUKTUR ENTRY
+    # =========================
+    a_ok = pa.get("status") in ["STRONG", "TRANSITION"]
+
+    # =========================
+    # B — TRIGGER HARGA
+    # =========================
+    b_ok = pa_details.get("break_kecil") is True
+
+    # =========================
+    # C — VALIDATOR TAMBAHAN
+    # =========================
+    c_ok = (
+        vol_status in ["STRONG", "ACCUMULATION"] or
+        mom_status in ["STRONG", "READY"] or
+        trend_status in ["STRONG", "TRENDING"]
+    )
+
+    st.markdown("### 🧭 Konfirmasi Entry")
+
+    # --- A ---
+    if a_ok:
+        st.success("🟢 A — Struktur Entry: VALID")
+    else:
+        st.error("🔴 A — Struktur Entry: BELUM VALID")
+
+    # --- B ---
+    if b_ok:
+        st.success("🟢 B — Trigger Harga (Break Kecil): VALID")
+    else:
+        st.warning("🟡 B — Trigger Harga (Break Kecil): MENUNGGU")
+        st.caption("⏳ Menunggu: close > high 5 hari terakhir")
+
+    # --- C ---
+    if c_ok:
+        st.info("🟢 C — Validator Tambahan: MENDUKUNG")
+    else:
+        st.info("🟡 C — Validator Tambahan: OPSIONAL")
+
+    # =========================
+    # STATUS FINAL
+    # =========================
+    state = item.get("status")
+
+    if state == "CONFIRMED":
+        st.success("🟢 STATUS: CONFIRMED — SIAP ENTRY")
+    elif state == "TRIGGERED":
+        st.warning("🟠 STATUS: TRIGGERED — Tunggu Validasi")
+    elif state == "SETUP":
+        st.info("🟡 STATUS: SETUP — Struktur Kuat, Belum Break")
+    else:
+        st.error("🔴 STATUS: NO TRADE")
+
+
 
 # =====================================================
 # TRADE PLAN UI
@@ -204,10 +277,11 @@ if run:
 
     status_order = {
         "CONFIRMED": 0,
-        "WAIT_CONFIRMATION": 1,
-        "WATCH": 2,
+        "TRIGGERED": 1,
+        "SETUP": 2,
         "NO_TRADE": 3
     }
+
 
     df["status_order"] = df["status"].map(status_order)
 
@@ -246,7 +320,9 @@ if run:
             )
 
             render_pipeline(item)
+            render_confirmation_abc(item)
             render_trade_plan(item)
+
 
             pilar_data = item.get("pilar", {})
 
